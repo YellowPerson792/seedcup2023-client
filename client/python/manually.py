@@ -6,14 +6,15 @@ from resp import *
 from config import config
 from ui import UI
 import subprocess
+import logging
 from threading import Thread
 from itertools import cycle
 from time import sleep
 from logger import logger
 
 import sys
-
-from anlz import Anlz
+import termios
+import tty
 
 # record the context of global data
 gContext = {
@@ -50,7 +51,7 @@ class Client(object):
             self._connected = True
         else:
             logger.error(f"can not connect to {self.host}:{self.port}")
-            sys.exit(-1)
+            exit(-1)
         return
 
     def send(self, req: PacketReq):
@@ -71,7 +72,7 @@ class Client(object):
                 break
 
         # uncomment this will show resp packet
-        # logger.info(f"recv PacketResp, content: {result}")
+        logger.info(f"recv PacketResp, content: {result}")
         packet = PacketResp().from_json(result)
         return packet
 
@@ -98,10 +99,10 @@ class Client(object):
 
 def cliGetInitReq():
     """Get init request from user input."""
-    return InitReq("2D26RnbFrssB0yGZ7mFz3Q==")
+    return InitReq("python-client")
 
 
-def recvAndRefresh(ui: UI, client: Client, anlz: Anlz):
+def recvAndRefresh(ui: UI, client: Client):
     """Recv packet and refresh ui."""
     global gContext
     resp = client.recv()
@@ -111,22 +112,11 @@ def recvAndRefresh(ui: UI, client: Client, anlz: Anlz):
         gContext["playerID"] = resp.data.player_id
         ui.player_id = gContext["playerID"]
 
+
     while resp.type != PacketType.GameOver:
-        subprocess.run(["clear"])        
+        subprocess.run(["clear"])
         ui.refresh(resp.data)
         ui.display()
-        anlz.codebox(resp.data) 
-        # resp = client.recv()
-           
-        actions = anlz.action_req_send()   
-        _action0, _action1 = actions[0], actions[1]              
-        action0 = ActionReq(gContext["playerID"], _action0)
-        action1 = ActionReq(gContext["playerID"], _action1)
-        # action = ActionReq(gContext["playerID"], anlz.action_req_send())
-   
-        actionPacket = PacketReq(PacketType.ActionReq, [action0, action1])
-        client.send(actionPacket)
-        
         resp = client.recv()
 
     print(f"Game Over!")
@@ -155,16 +145,15 @@ key2ActionReq = {
 
 def termPlayAPI():
     ui = UI()
-    anlz = Anlz()
     
     with Client() as client:
-        client.connect()    
+        client.connect()
         
         initPacket = PacketReq(PacketType.InitReq, cliGetInitReq())
         client.send(initPacket)
         
         # IO thread to display UI
-        t = Thread(target=recvAndRefresh, args=(ui, client, anlz))
+        t = Thread(target=recvAndRefresh, args=(ui, client))
         t.start()
         
         print(gContext["prompt"])
@@ -178,43 +167,23 @@ def termPlayAPI():
             )
             sleep(0.1)
 
-        
         while not gContext["gameOverFlag"]:
-            # old_settings = termios.tcgetattr(sys.stdin)
-            # tty.setcbreak(sys.stdin.fileno())
-            # key = sys.stdin.read(1)
-            # termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            old_settings = termios.tcgetattr(sys.stdin)
+            tty.setcbreak(sys.stdin.fileno())
+            key = sys.stdin.read(1)
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
             
-            # if key in key2ActionReq.keys():
-            #     action = ActionReq(gContext["playerID"], key2ActionReq[key])
-            # else:
-            #     action = ActionReq(gContext["playerID"], ActionType.SILENT)         
+            if key in key2ActionReq.keys():
+                action = ActionReq(gContext["playerID"], key2ActionReq[key])
+            else:
+                action = ActionReq(gContext["playerID"], ActionType.SILENT)
             
-            # print(anlz.action_req_send())           
-            # action = ActionReq(gContext["playerID"], anlz.action_req_send())
-            
-            # subprocess.run(["clear"]) 
-            # resp = client.recv()
-            
-            # anlz.codetest(resp.data)
-            
-            # print(anlz.action_req_send())           
-            # action = ActionReq(gContext["playerID"], anlz.action_req_send())
-   
-            # actionPacket = PacketReq(PacketType.ActionReq, action)
-            # client.send(actionPacket)
-            
-            
-
             if gContext["gameOverFlag"]:
                 break
             
-            # actionPacket = PacketReq(PacketType.ActionReq, action)
-            # client.send(actionPacket)
-            # sleep(0.5)
-            
-  
+            actionPacket = PacketReq(PacketType.ActionReq, action)
+            client.send(actionPacket)
+
 
 if __name__ == "__main__":
-    
     termPlayAPI()
