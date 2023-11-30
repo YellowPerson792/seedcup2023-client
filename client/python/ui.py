@@ -137,7 +137,17 @@ class UI(object):
                 f"Score: {self._player.score}"
             )
 
-        for block_row in self._block:
+        print('   ', end='')
+        for i in range(10):
+            print(i, end=' ')    
+        for i in range(5):
+            print(i, end=' ')
+        print('')  
+        for idx, block_row in enumerate(self._block):
+            if idx < 10:
+                print(idx, end=' ')
+            else:
+                print(idx, end='')
             for block in block_row:
                 print(block.emoji, end='')
             print('')
