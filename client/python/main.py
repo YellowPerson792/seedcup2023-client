@@ -118,13 +118,15 @@ def recvAndRefresh(ui: UI, client: Client, anlz: Anlz):
         anlz.codebox(resp.data) 
         # resp = client.recv()
            
-        actions = anlz.action_req_send()   
-        _action0, _action1 = actions[0], actions[1]              
-        action0 = ActionReq(gContext["playerID"], _action0)
-        action1 = ActionReq(gContext["playerID"], _action1)
+        actions = anlz.action_req_send() 
+        _actions = []
+        for action in actions:
+            _actions.append(ActionReq(gContext["playerID"], action))
+        # action0 = ActionReq(gContext["playerID"], _action0)
+        # action1 = ActionReq(gContext["playerID"], _action1)
         # action = ActionReq(gContext["playerID"], anlz.action_req_send())
    
-        actionPacket = PacketReq(PacketType.ActionReq, [action0, action1])
+        actionPacket = PacketReq(PacketType.ActionReq, _actions)
         client.send(actionPacket)
         
         resp = client.recv()
