@@ -14,11 +14,12 @@ action_Req = {
 class Anlz(object):  
     
     bomb_info = []
-    actions = ['silent','silent']
+    actions = []
     state = {
         'fight': False,
         'enemy_godness': False,
         'self_godness': False,
+        'dying': False,
     }
     
     def __init__(self) -> None:
@@ -43,11 +44,17 @@ class Anlz(object):
                     return obj.type
             return sloct.objs[0].type      
 
-        def ifstad(u,v):    
-            if blocktype(u,v) in [ObjType.Null, ObjType.Item]:
-                return True
-            else:
-                return False  
+        def ifstad(u,v, ignore_bomb=False):    
+            if ignore_bomb == False:
+                if blocktype(u,v) in [ObjType.Null, ObjType.Item]:
+                    return True
+                else:
+                    return False  
+            elif ignore_bomb:
+                if blocktype(u,v) in [ObjType.Null, ObjType.Item, ObjType.Bomb]:
+                    return True
+                else:
+                    return False
 
         def player_bomb_exist(p, q):
             player_exists = False
@@ -59,68 +66,68 @@ class Anlz(object):
                     bomb_exists = True
             return player_exists and bomb_exists         
         
-        def sigfidway(p, q):
+        def sigfidway(p, q, ignore_bomb=False):
             numls=list(range(1,14))
             directions = {'right': False, 'down': False, 'left': False, 'up': False}
-            if ifstad(p,q) or player_bomb_exist(p, q):
+            if ifstad(p, q) or player_bomb_exist(p, q):
                 if p==0 and q==0:
-                    if (ifstad(p,q+1)):
+                    if (ifstad(p,q+1, ignore_bomb)):
                         directions['right'] = True
-                    if (ifstad(p+1,q)):
+                    if (ifstad(p+1,q, ignore_bomb)):
                         directions['down'] = True
                 elif p==0 and q==14:    
-                    if (ifstad(p,q-1)):
+                    if (ifstad(p,q-1, ignore_bomb)):
                         directions['left'] = True
-                    if (ifstad(p+1,q)):
+                    if (ifstad(p+1,q, ignore_bomb)):
                         directions['down'] = True
                 elif p==14 and q==0:    
-                    if (ifstad(p-1,q)):
+                    if (ifstad(p-1,q, ignore_bomb)):
                         directions['up'] = True
-                    if (ifstad(p,q+1)):
+                    if (ifstad(p,q+1, ignore_bomb)):
                         directions['right'] = True 
                 elif p==14 and q==14:    
-                    if ifstad(p,q-1):
+                    if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
-                    if ifstad(p-1,q):
+                    if ifstad(p-1,q, ignore_bomb):
                         directions['up'] = True
                 elif (p in numls) and (q==0):
-                    if ifstad(p,q+1):
+                    if ifstad(p,q+1, ignore_bomb):
                         directions['right'] = True
-                    if ifstad(p-1,q):
+                    if ifstad(p-1,q, ignore_bomb):
                         directions['up'] = True
-                    if ifstad(p+1,q):
+                    if ifstad(p+1,q, ignore_bomb):
                         directions['down'] = True
                 elif (p in numls) and (q==14):
-                    if ifstad(p,q-1):
+                    if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
-                    if ifstad(p-1,q):
+                    if ifstad(p-1,q, ignore_bomb):
                         directions['up'] = True
-                    if ifstad(p+1,q):
+                    if ifstad(p+1,q, ignore_bomb):
                         directions['down'] = True
                 elif (p==0) and (q in numls):
-                    if ifstad(p,q+1):
+                    if ifstad(p,q+1, ignore_bomb):
                         directions['right'] = True
-                    if ifstad(p,q-1):
+                    if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
-                    if ifstad(p+1,q):
+                    if ifstad(p+1,q, ignore_bomb):
                         directions['down'] = True
                 elif (p==14) and (q in numls):
-                    if ifstad(p,q+1):
+                    if ifstad(p,q+1, ignore_bomb):
                         directions['right'] = True
-                    if ifstad(p,q-1):
+                    if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
-                    if ifstad(p-1,q):
+                    if ifstad(p-1,q, ignore_bomb):
                         directions['up'] = True
                 else:
-                    if ifstad(p,q+1):
+                    if ifstad(p,q+1, ignore_bomb):
                         directions['right'] = True
-                    if ifstad(p+1,q):
+                    if ifstad(p+1,q, ignore_bomb):
                         directions['down'] = True
-                    if ifstad(p,q-1):
+                    if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
-                    if ifstad(p-1,q):
+                    if ifstad(p-1,q, ignore_bomb):
                         directions['up'] = True          
-            
+                
             result = [direction for direction, value in directions.items() if value]
             return result
                 
@@ -132,10 +139,8 @@ class Anlz(object):
                 'left': (0, -1),
                 'up': (-1, 0)
             }
-
             dx, dy = directions[dir]
             new_coord = (m + dx, n + dy)
-
             return new_coord
     
         # def findway(coord, path, last_direction):   # 寻路函数
@@ -158,14 +163,14 @@ class Anlz(object):
         #         new_coord = caculat(*coord, direction)
         #         findway(new_coord, new_path, direction) 
 
-        def findway(start_coord, path, last_direction):   # 寻路函数
+        def findway(start_coord, path, last_direction, ignore_bomb=False):   # 寻路函数
             queue = deque([(start_coord, path, last_direction)])
             visited_coords = set([start_coord])
             paths = []
 
             while queue:
                 start_coord, path, last_direction = queue.popleft()
-                directions = sigfidway(*start_coord)
+                directions = sigfidway(*start_coord, ignore_bomb)
                 if last_direction is not None:
                     directions = [direction for direction in directions if direction != opposite(last_direction)]
                 if not directions:
@@ -191,7 +196,7 @@ class Anlz(object):
             if direction == 'right':
                 return 0, 1
             return 0, 0  # 如果方向无效，返回 (0, 0)
-
+        
         def paths_to_coords(start_coord, paths): # 将方向表示的路径转换为坐标表示的路径
             coords_list = []
             if len(paths):
@@ -212,24 +217,38 @@ class Anlz(object):
             opposites = {'right': 'left', 'down': 'up', 'left': 'right', 'up': 'down'}
             return opposites[direction]
         
-        def get_coords_list(start_coord, bomb_range_with_round): # 获取所有路径
-            path = []
-            paths = findway(start_coord, path, None)
-            coords_list = paths_to_coords(start_coord, paths)
+        def get_coords_list(start_coord, bomb_range_with_round, ignore_bomb_range=False): # 获取所有路径
+            paths_no_bomb = findway(start_coord, [], None, ignore_bomb=False)
+            paths_with_bomb = findway(start_coord, [], None, ignore_bomb=True)
+            coords_list_no_bomb = paths_to_coords(start_coord, paths_no_bomb)
+            coords_list_with_bomb = paths_to_coords(start_coord, paths_with_bomb)
+            
             bomb_range = bomb_range_with_round.keys()
             
-            new_coords_list = coords_list.copy()
-            for i, coords in enumerate(coords_list):
-                entered_bomb_range = False
-                for coord in coords:
-                    if coord in bomb_range:
-                        if entered_bomb_range:
-                            new_coords = coords[:coords.index(coord)]
-                            new_coords_list[i] = new_coords
-                            break
-                    else:
-                        entered_bomb_range = True
-            return new_coords_list
+            new_coords_list_no_bomb = coords_list_no_bomb.copy()
+            new_coords_list_with_bomb = coords_list_with_bomb.copy()
+            if ignore_bomb_range == False:
+                for i, coords in enumerate(coords_list_no_bomb):
+                    entered_bomb_range = False
+                    for coord in coords:
+                        if coord in bomb_range:
+                            if entered_bomb_range:
+                                new_coords = coords[:coords.index(coord)]
+                                new_coords_list_no_bomb[i] = new_coords
+                                break
+                        else:
+                            entered_bomb_range = True
+                for j, coords in enumerate(coords_list_with_bomb):
+                    entered_bomb_range = False
+                    for coord in coords:
+                        if coord in bomb_range:
+                            if entered_bomb_range:
+                                new_coords = coords[:coords.index(coord)]
+                                new_coords_list_with_bomb[j] = new_coords
+                                break
+                        else:
+                            entered_bomb_range = True
+            return new_coords_list_no_bomb, new_coords_list_with_bomb
         
         def get_self_position():  # 获取自己的坐标
             player_id = actionResp.player_id
@@ -384,7 +403,7 @@ class Anlz(object):
             return count
         
         def cal_distance_use_start_coord(start_coord, target_coord, bomb_range_with_round):
-            coords_list = get_coords_list(start_coord, bomb_range_with_round)
+            coords_list, _ = get_coords_list(start_coord, bomb_range_with_round)
             distance = calculate_distance(coords_list, target_coord)
             return distance
         
@@ -394,38 +413,56 @@ class Anlz(object):
             [(enemy_x + dx, enemy_y + dy) for dx in range(-2, 3) for dy in range(-2 + abs(dx), 3 - abs(dx))]
             return attack_coords_list
         
-        def get_no_godness_coord(state, self_position, enemy_position, enemy_property, bomb_range_with_round, forseen): # 获取远离女神的安全坐标
+        def get_no_godness_coord(self_position, enemy_position, bomb_range_with_round): # 获取远离女神的安全坐标
+            coords_list_from_enemy, _ = get_coords_list(enemy_position, bomb_range_with_round)
+            enemy_coords = []
+            escape_coords = []
+            no_godness_target_coord = None
+            for coords in coords_list_from_enemy:
+                if self_position in coords:
+                    enemy_coords = coords
+                    break
+            if self_position in enemy_coords:
+                self_coord_idx = enemy_coords.index(self_position)
+                escape_coords = enemy_coords[self_coord_idx:]
+                if len(escape_coords) > self_property.speed:
+                    no_godness_target_coord = escape_coords[self_property.speed]
+                    return no_godness_target_coord
+                else:
+                    no_godness_target_coord = escape_coords[-1]
+                    return no_godness_target_coord
+            return None
             
-            def get_enemy_godness_range(enemy_position, enemy_property):        # 改成直接远离敌人
-                enemy_x, enemy_y = enemy_position 
-                enemy_speed = enemy_property.speed
-                ra = enemy_speed + 1
-                godness_coords_list = \
-                [(enemy_x + dx, enemy_y + dy) for dx in range((-ra+1), ra) for dy in range((-ra+1) + abs(dx), ra - abs(dx))]
-                return godness_coords_list
+            # def get_enemy_godness_range(enemy_position, enemy_property):        # 改成直接远离敌人
+            #     enemy_x, enemy_y = enemy_position 
+            #     enemy_speed = enemy_property.speed
+            #     ra = enemy_speed + 1
+            #     godness_coords_list = \
+            #     [(enemy_x + dx, enemy_y + dy) for dx in range((-ra+1), ra) for dy in range((-ra+1) + abs(dx), ra - abs(dx))]
+            #     return godness_coords_list
             
-            def get_no_godness_coords(coords_list, godness_range):
-                no_godness_coords = []
-                for coords in coords_list:
-                    for coord in coords:
-                        if coord not in godness_range:
-                            no_godness_coords.append(coord)
-                return no_godness_coords
+            # def get_no_godness_coords(coords_list, godness_range):
+            #     no_godness_coords = []
+            #     for coords in coords_list:
+            #         for coord in coords:
+            #             if coord not in godness_range:
+            #                 no_godness_coords.append(coord)
+            #     return no_godness_coords
                 
-            def get_nearest_no_godness_coord(no_godness_coords):
-                    distances = [calculate_distance(coords_list, coord) for coord in no_godness_coords]
-                    min_index = distances.index(min(distances))
-                    return no_godness_coords[min_index]
+            # def get_nearest_no_godness_coord(no_godness_coords):
+            #         distances = [calculate_distance(coords_list, coord) for coord in no_godness_coords]
+            #         min_index = distances.index(min(distances))
+            #         return no_godness_coords[min_index]
                 
-            enemy_godness_range = get_enemy_godness_range(enemy_position, enemy_property)
-            if state['enemy_godness'] == True and state['fight'] == True \
-                and self_position in enemy_godness_range and forseen == False:
+            # enemy_godness_range = get_enemy_godness_range(enemy_position, enemy_property)
+            # if state['enemy_godness'] == True and state['fight'] == True \
+            #     and self_position in enemy_godness_range and forseen == False:
                 
-                no_godness_coords = get_no_godness_coords(coords_list, enemy_godness_range)
-                nearest_no_godness_coord = get_nearest_no_godness_coord(no_godness_coords)
-                return nearest_no_godness_coord
-            else:
-                return None
+            #     no_godness_coords = get_no_godness_coords(coords_list, enemy_godness_range)
+            #     nearest_no_godness_coord = get_nearest_no_godness_coord(no_godness_coords)
+            #     return nearest_no_godness_coord
+            # else:
+            #     return None
         
         def get_bomb_block_point(coords_list, map, bomb_info, state, imagin_place): # 获取放炸弹的坐标(收集资源阶段)
             bomb_positions = [bomb['position'] for bomb in bomb_info]
@@ -449,22 +486,18 @@ class Anlz(object):
         def find_safe_coords(round, coords_list, bomb_range_with_round, property): # 找到最近的安全坐标
             safe_coords = []
             start_coord = coords_list[0][0]
-            bomb_range = bomb_range_with_round.keys()
+            bomb_range = list(bomb_range_with_round.keys())
             if start_coord in bomb_range:
                 for coords in coords_list:
                     for coord in coords:
                         reach_round = round + cal_required_round(coords_list, coord, property)
                         if coord in bomb_range:
                             bomb_round = bomb_range_with_round[coord]
-                            if reach_round < bomb_round:
+                            if reach_round <= bomb_round:
                                 continue
-                            elif reach_round >= bomb_round:
+                            elif reach_round > bomb_round:
                                 break
                         elif coord not in bomb_range:
-                            safe_coords.append(coord)
-                            break
-                
-                        if coord not in bomb_range:
                             safe_coords.append(coord)
                             break
             return safe_coords  
@@ -472,7 +505,7 @@ class Anlz(object):
         def find_best_safe_coord(safe_coords, bomb_range_with_round):
             coords_sum_list = []
             for coord in safe_coords:
-                forseen_coords_list = get_forseen_coords_list(coord, bomb_range_with_round)
+                forseen_coords_list, _ = get_coords_list(coord, bomb_range_with_round)
                 coords_sum = sum([len(coords) for coords in forseen_coords_list])
                 coords_sum_list.append(coords_sum)
             if len(coords_sum_list):
@@ -480,6 +513,40 @@ class Anlz(object):
                 return safe_coords[max_coords_sum_index]
             return None
         
+        def get_cut_point(cut_idx):        # 获取切路坐标
+            
+            def get_surrounding_coords(enemy_coord):
+                directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+                surrounding_coords = []
+                for dx, dy in directions:
+                    x, y = enemy_coord[0] + dx, enemy_coord[1] + dy
+                    if 0 <= x <= 14 and 0 <= y <= 14 and ifstad(x, y):
+                        surrounding_coords.append((x, y))
+                return surrounding_coords
+
+            cut_points = []
+            cut_point = None
+            cut_points = get_surrounding_coords(enemy_position)
+            try:
+                cut_point = cut_points[cut_idx]
+            except:
+                pass
+            return cut_point
+        
+        def get_push_bomb_point(bomb_info, bomb_range_with_round): # 获取推炸弹的坐标
+            coords_list_with_bomb = get_coords_list(self_position, bomb_range_with_round)[1]
+            bomb_positions = [bomb['position'] for bomb in bomb_info]
+            push_points = []
+            push_point = None
+            for coords in coords_list_with_bomb:
+                for coord in coords[1:]:
+                    if coord in bomb_positions:
+                        push_points.append(coord)
+                        break
+            if len(push_points):
+                push_point = push_points[0]
+            return push_point
+                
         # def get_fatal_bomb_enemy_points(bomb_info, bomb_range_with_round): # 获取必杀坐标
             
         #     def modify_enemy_coords_list(original_coords_list, _coord):
@@ -529,12 +596,12 @@ class Anlz(object):
             min_index = distances.index(min(distances))
             return items_list[min_index]
 
-        def get_forseen_coords_list(target_coord, bomb_range_with_round):
-            forseen_coords_list = []
-            if target_coord is not None:
-                forseen_start_coord = target_coord
-                forseen_coords_list = get_coords_list(forseen_start_coord, bomb_range_with_round)
-            return forseen_coords_list
+        # def get_forseen_coords_list(target_coord, bomb_range_with_round):
+        #     forseen_coords_list = []
+        #     if target_coord is not None:
+        #         forseen_start_coord = target_coord
+        #         forseen_coords_list = get_coords_list(forseen_start_coord, bomb_range_with_round)
+        #     return forseen_coords_list
         
         def get_forseen_bomb_info(place_coord, bomb_info):
             forseen_bomb_info = bomb_info.copy()
@@ -544,15 +611,8 @@ class Anlz(object):
                 forseen_bomb_info.append({'position': place_coord, 'id': -1, 'place_round': place_round, 'player': self_property.player_id})  
             return forseen_bomb_info
         
-        def get_attack_point(coords_list, forseen): # 待补全
-            for coords in coords_list:
-                for coord in (coords[1:] if forseen else coords):
-                    if 1:
-                        1
-            return None
-        
         def get_forseen_target_point(forseen_coords_list, forseen_bomb_range_with_round, \
-            forseen_bomb_info, forseen_round):
+            forseen_bomb_info, forseen_round, cut_idx):
             
             start_coord = forseen_coords_list[0][0]
             forseen_bomb_block_point = get_bomb_block_point(forseen_coords_list, map, forseen_bomb_info, self.state, imagin_place=True)    # 可能有问题
@@ -560,9 +620,11 @@ class Anlz(object):
             forseen_best_safe_coord = find_best_safe_coord(forseen_safe_coords, forseen_bomb_range_with_round)
             forseen_item_list = get_item_position_list(forseen_coords_list, map, forseen=True)
             forseen_enemy_position = (None if (start_coord == enemy_position) else enemy_position)
-            no_godness_point = get_no_godness_coord(self.state, start_coord, enemy_position, enemy_property, bomb_range_with_round, forseen=True)
+            no_godness_point = None
+            forseen_cut_point = get_cut_point(cut_idx)
+            forseen_push_bomb_point = None
             forseen_target_point = select_and_combine_target_point(forseen_best_safe_coord, forseen_bomb_block_point, \
-                        forseen_item_list, forseen_enemy_position, no_godness_point)
+                        forseen_item_list, forseen_enemy_position, no_godness_point, forseen_cut_point, forseen_push_bomb_point)
             return forseen_target_point
         
         def forseen_bomb_place_escapable(place_coord, bomb_info):       # 有问题?
@@ -573,7 +635,7 @@ class Anlz(object):
                 _, bomb_range_with_round = get_bomb_range(forseen_bomb_info)
                 forseen_start_coord = place_coord
                 forseen_coords_list = []
-                forseen_coords_list = get_coords_list(forseen_start_coord, bomb_range_with_round)
+                forseen_coords_list, _ = get_coords_list(forseen_start_coord, bomb_range_with_round)
                 # print("预测放炸弹后的路径：", forseen_coords_list)
                 forseen_safe_coords = []
                 forseen_safe_coords = find_safe_coords(place_round, forseen_coords_list, bomb_range_with_round, self_property)
@@ -583,13 +645,14 @@ class Anlz(object):
                 # print("预测放炸弹后的安全坐标：", forseen_safe_coords)
                 return False
         
-        def select_and_combine_target_point(best_safe_coord, bomb_block_point, item_coord, enemy_point, no_godness_point): # 刷新目标点
+        def select_and_combine_target_point(best_safe_coord, bomb_block_point, item_coord, enemy_point, no_godness_point, cut_point, push_bomb_point): # 刷新目标点
             target_point = {        
                 'safe_point': None,
                 'item_point': None,
                 'bomb_block_point': None, 
                 'enemy_point': None,
                 'no_godness_point': None,
+                'push_bomb_point': None,
                 }   
             if best_safe_coord is not None:
                 target_point['safe_point'] = best_safe_coord
@@ -600,6 +663,10 @@ class Anlz(object):
                 target_point['enemy_point'] = enemy_point
             if no_godness_point is not None:
                 target_point['no_godness_point'] = no_godness_point
+            if cut_point is not None:
+                target_point['cut_point'] = cut_point
+            if push_bomb_point is not None:
+                target_point['push_bomb_point'] = push_bomb_point
             return target_point
 
         def get_direction(self_position, next_coord):
@@ -618,28 +685,26 @@ class Anlz(object):
         
         def cal_required_round(coords_list, target_coord, property):
             distance = calculate_distance(coords_list, target_coord)
-            if distance % property.speed == 0:
-                require_round = distance // property.speed
-            else:
-                require_round = distance // property.speed + 1
+            require_round = distance // property.speed + 1
             return require_round
         
-        def change_state(coords_list, self_property, enemy_property): # 改变状态
+        def change_state(coords_list, self_property, enemy_property, best_safe_coord, bomb_range): # 改变状态
             if self_property.invincible_time > 0:
                 self.state['self_godness'] = True
             else:
                 self.state['self_godness'] = False
-            
             if enemy_property.invincible_time > 0:
                 self.state['enemy_godness'] = True
             else:
                 self.state['enemy_godness'] = False
+            if self_position in bomb_range and best_safe_coord == None:
+                self.state['dying'] = True
+            else:
+                self.state['dying'] = False
             for coords in coords_list:
                 if enemy_position in coords:
                     self.state['fight'] = True
                     break
-            else:
-                self.state['fight'] = False
         
         def transform_target_point_to_coords(target_point, coords_list):
             target_coords = {}
@@ -651,57 +716,91 @@ class Anlz(object):
                                 target_coords[type] = coords[:coords.index(coord)+1]
             return target_coords
         
-        def create_action_list(state, action_list, coords_list, target_point, round, bomb_info, bomb_range, bomb_range_with_round):
+        def create_action_list(state, action_list, coords_list, target_point, round, bomb_info, bomb_range, \
+            bomb_range_with_round, recursion_times=0):
+            
             max_action_times = self_property.speed
             left_action_times = max_action_times - len(action_list)
-            has_gloves = self_property.has_gloves
             
-            target_coords = transform_target_point_to_coords(target_point, coords_list)
+            if state['dying'] == True:
+                coords_list_with_bomb = get_coords_list(self_position, bomb_range_with_round)[1]
+                target_coords = transform_target_point_to_coords(target_point, coords_list_with_bomb)
+            elif state['self_godness'] == True and self_property.invincible_time >= enemy_property.invincible_time:
+                start_coord = coords_list[0][0]
+                coords_list_no_bomb_range = get_coords_list(start_coord, bomb_range_with_round, ignore_bomb_range=True)[0]
+                target_coords = transform_target_point_to_coords(target_point, coords_list_no_bomb_range)
+            else:
+                target_coords = transform_target_point_to_coords(target_point, coords_list)
             action_target_coords = []
-            action_target_coord = None    # ['safe_point', 'no_godness_point', 'enemy_point', 'item_point', 'bomb_block_point']
+            action_target_coord = None   
             
             if state['fight'] == False:
                 priority_list = ['safe_point', 'item_point', 'bomb_block_point']
+            
             if state['fight'] == True:
                 if state['self_godness'] == True and self_property.invincible_time >= enemy_property.invincible_time:
-                    priority_list = ['enemy_point', 'safe_point', 'item_point', 'bomb_block_point']
+                    priority_list = ['enemy_point', 'cut_point', 'safe_point', 'item_point', 'bomb_block_point']
                 elif state['self_godness'] == True and self_property.invincible_time < enemy_property.invincible_time:
                     priority_list = ['no_godness_point', 'safe_point', 'item_point', 'bomb_block_point']
                 elif state['self_godness'] == False and state['enemy_godness'] == True:
                     priority_list = ['no_godness_point', 'safe_point', 'item_point']
                 elif state['self_godness'] == False and state['enemy_godness'] == False:
-                    priority_list = ['safe_point', 'enemy_point', 'item_point', 'bomb_block_point']
+                    priority_list = ['safe_point', 'item_point', 'cut_point', 'bomb_block_point']
+                
+                elif state['dying'] == True:
+                    priority_list = ['push_bomb_point']
                     
             target_type = None
             for type in priority_list:
-                if type in target_coords and target_coords[type]:
+                print("目标类型：", type)
+                if type in target_coords.keys() and target_coords[type]:
                     action_target_coords = target_coords[type]
                     target_type = type
                     break
             if len(action_target_coords):
                 action_target_coord = action_target_coords[-1]
-            # print("至当前行动目标点的路径：", action_target_coords)
                 
             if action_target_coord is not None:
-                ditance_to_target = calculate_distance(coords_list, action_target_coord)
-                # print("当前行动的目标点：", action_target_coord)
-                # print("到当前行动目标点的距离：", ditance_to_target)
+                if target_type == 'push_bomb_point':
+                    ditance_to_target = calculate_distance(coords_list_with_bomb, action_target_coord)
+                else:
+                    ditance_to_target = calculate_distance(coords_list, action_target_coord)
+                print("行动的目标点及其类型：", action_target_coord, target_type)
                 
                 action_list_p = []  # 情况1：不能一次性到达目标点
                 if ditance_to_target >= left_action_times:
                     for i in range(left_action_times):
                         direction = get_direction(action_target_coords[i], action_target_coords[i+1])
                         action_list_p.append(direction)
-                    # print("action_list_1b:", action_list)
+                    if target_point == 'no_godness_point':
+                        action_list_p.insert(0, 'place')
                     action_list.extend(action_list_p)
-                    # print("action_list_1:", action_list)
                 
                 elif ditance_to_target < left_action_times: # 情况2：可以一次性到达目标点
                     action_times_p = ditance_to_target
-                    # print("到当前行动目标点前可行动次数：", action_times_p)
                     forseen_round = round + cal_required_round(coords_list, action_target_coord, self_property)
                     forseen_bomb_range_with_round = bomb_range_with_round
                     
+                    if target_type == 'push_bomb_point':
+                        for i in range(action_times_p):
+                            direction = get_direction(action_target_coords[i], action_target_coords[i+1])
+                            action_list_p.append(direction)
+                        forseen_bomb_info = bomb_info
+                        forseen_bomb_range = bomb_range
+                        forseen_coords_list, _ = get_coords_list(action_target_coord, forseen_bomb_range_with_round)
+                        forseen_target_point = get_forseen_target_point(forseen_coords_list, bomb_range_with_round, \
+                            forseen_bomb_info, forseen_round, recursion_times)
+                    if target_type == 'no_godness_point':
+                        for i in range(action_times_p):
+                            direction = get_direction(action_target_coords[i], action_target_coords[i+1])
+                            action_list_p.append(direction)
+                        forseen_bomb_info = bomb_info
+                        forseen_bomb_range = bomb_range
+                        forseen_coords_list, _ = get_coords_list(action_target_coord, forseen_bomb_range_with_round)
+                        forseen_target_point = get_forseen_target_point(forseen_coords_list, bomb_range_with_round, \
+                            forseen_bomb_info, forseen_round, recursion_times)
+                        if forseen_bomb_place_escapable(self_position, bomb_info) == True:
+                            action_list_p.insert(0, 'place')
                     if target_type == 'bomb_block_point':
                         action_times_p += 1
                         for i in range(action_times_p):
@@ -709,28 +808,29 @@ class Anlz(object):
                                 direction = get_direction(action_target_coords[i], action_target_coords[i+1])
                                 action_list_p.append(direction)
                             elif i == action_times_p - 1:
-                                action_list_p.append('place')       # 在敌人前放炸弹明显迟钝，要改
+                                action_list_p.append('place')       
                         forseen_bomb_info = get_forseen_bomb_info(action_target_coord, bomb_info)
                         forseen_bomb_range, forseen_bomb_range_with_round = get_bomb_range(forseen_bomb_info)
-                        forseen_coords_list = get_forseen_coords_list(action_target_coord, forseen_bomb_range_with_round)
+                        forseen_coords_list, _ = get_coords_list(action_target_coord, forseen_bomb_range_with_round)
                         forseen_target_point = get_forseen_target_point(forseen_coords_list, forseen_bomb_range_with_round, \
-                            forseen_bomb_info, forseen_round)
-                    elif target_type != 'bomb_block_point':
+                            forseen_bomb_info, forseen_round, recursion_times)
+                    else:
                         for i in range(action_times_p):
                             direction = get_direction(action_target_coords[i], action_target_coords[i+1])
                             action_list_p.append(direction)
                         forseen_bomb_info = bomb_info
                         forseen_bomb_range = bomb_range
-                        forseen_coords_list = get_forseen_coords_list(action_target_coord, forseen_bomb_range_with_round)
+                        forseen_coords_list, _ = get_coords_list(action_target_coord, forseen_bomb_range_with_round)
                         forseen_target_point = get_forseen_target_point(forseen_coords_list, bomb_range_with_round, \
-                            forseen_bomb_info, forseen_round)
+                            forseen_bomb_info, forseen_round, recursion_times)
                     
-                    # print("action_list_2b:", action_list)
-                    action_list.extend(action_list_p)
-                    # print("action_list_2:", action_list)
+                    if len(action_list_p):
+                        action_list.extend(action_list_p)
+                    else:
+                        action_list.append('silent')
                     if len(action_list) < max_action_times:
                         create_action_list(state, action_list, forseen_coords_list, forseen_target_point, \
-                            forseen_round, forseen_bomb_info, forseen_bomb_range, forseen_bomb_range_with_round)
+                            forseen_round, forseen_bomb_info, forseen_bomb_range, forseen_bomb_range_with_round, recursion_times+1)
                     else:
                         action_list = action_list[:max_action_times]
             
@@ -739,35 +839,43 @@ class Anlz(object):
         bomb_range, bomb_range_with_round = get_bomb_range(self.bomb_info)
         
         start_coord = self_position
-        coords_list = get_coords_list(start_coord, bomb_range_with_round)
-        change_state(coords_list, self_property, enemy_property)
-
-        bomb_block_point = get_bomb_block_point(coords_list, map, self.bomb_info, self.state, imagin_place=False)
+        coords_list, _ = get_coords_list(start_coord, bomb_range_with_round)
         
         safe_coords = find_safe_coords(present_round, coords_list, bomb_range_with_round, self_property)
         best_safe_coord = find_best_safe_coord(safe_coords, bomb_range_with_round)
         
+        change_state(coords_list, self_property, enemy_property, best_safe_coord, bomb_range)
+
+        bomb_block_point = get_bomb_block_point(coords_list, map, self.bomb_info, self.state, imagin_place=False)
+        
         item_list = get_item_position_list(coords_list, map, forseen=False)
         item_coord = get_nearest_item_position(coords_list, item_list)
 
-        no_godness_point = get_no_godness_coord(self.state, self_position, enemy_position, enemy_property, bomb_range_with_round, forseen=False)
+        no_godness_point = get_no_godness_coord(self_position, enemy_position, bomb_range_with_round)
+        
+        cut_point = get_cut_point(cut_idx=0)
+        
+        push_bomb_point = get_push_bomb_point(self.bomb_info, bomb_range_with_round)
 
         # fatal_point = None
         # if self.state['fight'] == True and cal_required_round(coords_list, enemy_position, self_property) <= 1:
         #     fatal_point = get_nearest_fatal_point(coords_list, get_fatal_bomb_enemy_points(self.bomb_info, bomb_range_with_round))
         
-        target_point = select_and_combine_target_point(best_safe_coord, bomb_block_point, item_coord, enemy_position, no_godness_point)
+        target_point = select_and_combine_target_point(best_safe_coord, bomb_block_point, item_coord, enemy_position, \
+            no_godness_point, cut_point, push_bomb_point)
         
         action_list = []
         bomb_info = self.bomb_info
         create_action_list(self.state, action_list, coords_list, target_point, present_round, bomb_info, bomb_range, bomb_range_with_round)
         attack_range = get_attack_range()
-        if self_position in attack_range and self.state['fight'] == True and forseen_bomb_place_escapable(self_position, bomb_info) == True:
+        if self_position in attack_range and self.state['fight'] == True and forseen_bomb_place_escapable(self_position, bomb_info):
             action_list.insert(0, 'place')
         
         self.actions = action_list
         
         # print("致命点：", fatal_point)
+        print("当前状态：", self.state)
+        print("切路坐标：", cut_point)
         print("目的安全坐标：", best_safe_coord)
         print("安全坐标：", safe_coords)
         print("开路坐标：", bomb_block_point)
