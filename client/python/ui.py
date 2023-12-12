@@ -56,7 +56,10 @@ CharacterUsed = [Emoji.Character1,
 
 
 playerID2Emoji = {0:Emoji.Character1.emoji,
-                  1:Emoji.Character2.emoji,} # to be allocated
+                  1:Emoji.Character2.emoji,
+                  2:Emoji.Character3.emoji,
+                  3:Emoji.Character4.emoji
+                  } # to be allocated
 
 
 itemType2Emoji = {
@@ -140,7 +143,7 @@ class UI(object):
         print('   ', end='')
         for i in range(10):
             print(i, end=' ')    
-        for i in range(5):
+        for i in range(10):
             print(i, end=' ')
         print('')  
         for idx, block_row in enumerate(self._block):

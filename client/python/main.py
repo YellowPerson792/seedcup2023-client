@@ -113,18 +113,14 @@ def recvAndRefresh(ui: UI, client: Client, anlz: Anlz):
 
     while resp.type != PacketType.GameOver:
         subprocess.run(["clear"])        
-        # ui.refresh(resp.data)
-        # ui.display()
+        ui.refresh(resp.data)
+        ui.display()
         anlz.codebox(resp.data) 
-        # resp = client.recv()
            
         actions = anlz.action_req_send() 
         _actions = []
         for action in actions:
             _actions.append(ActionReq(gContext["playerID"], action))
-        # action0 = ActionReq(gContext["playerID"], _action0)
-        # action1 = ActionReq(gContext["playerID"], _action1)
-        # action = ActionReq(gContext["playerID"], anlz.action_req_send())
    
         actionPacket = PacketReq(PacketType.ActionReq, _actions)
         client.send(actionPacket)

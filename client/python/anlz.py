@@ -20,7 +20,11 @@ class Anlz(object):
         'enemy_godness': False,
         'self_godness': False,
         'dying': False,
+        'self_shield': False,
     }
+    
+    nearest_enemy_id = None
+    enemy_position = None
     
     def __init__(self) -> None:
         pass   
@@ -30,7 +34,7 @@ class Anlz(object):
         map=actionResp.map
         
         def blocktype(m,n):
-            sloct=actionResp.map[m*15+n]
+            sloct=actionResp.map[m*19+n]
             if not len(sloct.objs):
                 return 0
             for obj in sloct.objs:
@@ -50,7 +54,7 @@ class Anlz(object):
                     return True
                 else:
                     return False  
-            elif ignore_bomb:
+            elif ignore_bomb == True:
                 if blocktype(u,v) in [ObjType.Null, ObjType.Item, ObjType.Bomb]:
                     return True
                 else:
@@ -59,7 +63,7 @@ class Anlz(object):
         def player_bomb_exist(p, q):
             player_exists = False
             bomb_exists = False
-            for obj in map[p*15+q].objs:
+            for obj in map[p*19+q].objs:
                 if obj.type == ObjType.Player:
                     player_exists = True
                 if obj.type == ObjType.Bomb:
@@ -67,7 +71,7 @@ class Anlz(object):
             return player_exists and bomb_exists         
         
         def sigfidway(p, q, ignore_bomb=False):
-            numls=list(range(1,14))
+            numls=list(range(1,18))
             directions = {'right': False, 'down': False, 'left': False, 'up': False}
             if ifstad(p, q) or player_bomb_exist(p, q):
                 if p==0 and q==0:
@@ -75,17 +79,17 @@ class Anlz(object):
                         directions['right'] = True
                     if (ifstad(p+1,q, ignore_bomb)):
                         directions['down'] = True
-                elif p==0 and q==14:    
+                elif p==0 and q==18:    
                     if (ifstad(p,q-1, ignore_bomb)):
                         directions['left'] = True
                     if (ifstad(p+1,q, ignore_bomb)):
                         directions['down'] = True
-                elif p==14 and q==0:    
+                elif p==18 and q==0:    
                     if (ifstad(p-1,q, ignore_bomb)):
                         directions['up'] = True
                     if (ifstad(p,q+1, ignore_bomb)):
                         directions['right'] = True 
-                elif p==14 and q==14:    
+                elif p==18 and q==18:    
                     if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
                     if ifstad(p-1,q, ignore_bomb):
@@ -97,7 +101,7 @@ class Anlz(object):
                         directions['up'] = True
                     if ifstad(p+1,q, ignore_bomb):
                         directions['down'] = True
-                elif (p in numls) and (q==14):
+                elif (p in numls) and (q==18):
                     if ifstad(p,q-1, ignore_bomb):
                         directions['left'] = True
                     if ifstad(p-1,q, ignore_bomb):
@@ -111,7 +115,7 @@ class Anlz(object):
                         directions['left'] = True
                     if ifstad(p+1,q, ignore_bomb):
                         directions['down'] = True
-                elif (p==14) and (q in numls):
+                elif (p==18) and (q in numls):
                     if ifstad(p,q+1, ignore_bomb):
                         directions['right'] = True
                     if ifstad(p,q-1, ignore_bomb):
@@ -254,47 +258,60 @@ class Anlz(object):
             player_id = actionResp.player_id
             for loct in map:
                 for obj in loct.objs:
-                    if obj.type == 1 and obj.property.player_id == player_id:
+                    if obj.type == ObjType.Player and obj.property.player_id == player_id:
                         return (loct.x, loct.y)
             return None
         
-        def get_enemy_position():   # 获取敌人的坐标
+        def get_nearest_enemy_position():   # 获取敌人的坐标
             player_id = actionResp.player_id
+            self_position = get_self_position()
+            enemy_coord = []
+            distances = []
             for loct in map:
                 for obj in loct.objs:
-                    if obj.type == 1 and obj.property.player_id != player_id:
-                        return (loct.x, loct.y)
-            return None
-        
-        self_position = get_self_position()   
-        enemy_position = get_enemy_position()
-        
-        def get_self_property():  # 获取自己的属性
-            x = self_position[0]
-            y = self_position[1]
-            player_id = actionResp.player_id
-            for obj in map[x*15+y].objs:
-                if obj.type == ObjType.Player and obj.property.player_id == player_id:
-                    return obj.property
-            return None
-                
-        def get_enemy_property():  # 获取敌人的属性
-            x = enemy_position[0]
-            y = enemy_position[1]
-            player_id = actionResp.player_id
-            for obj in map[x*15+y].objs:
-                if obj.type == ObjType.Player and obj.property.player_id != player_id:
-                    return obj.property
-            return None
-        
-        self_property = get_self_property()   
-        enemy_property = get_enemy_property()
+                    if obj.type == ObjType.Player and obj.property.player_id != player_id:
+                        enemy_coord.append((loct.x, loct.y))
+            
+            for coord in enemy_coord:
+                distance = ((coord[0] - self_position[0]) ** 2 + (coord[1] - self_position[1]) ** 2) ** 0.5
+                distances.append(distance)
+            
+            if distances:
+                min_distance = min(distances)
+                nearest_enemy_coord = enemy_coord[distances.index(min_distance)]
+                return nearest_enemy_coord
 
+            return None
+        
+        def get_all_players_properties():  # 获取所有玩家的属性
+            properties = {}
+            for loct in map:
+                for obj in loct.objs:
+                    if obj.type == ObjType.Player:
+                        properties[obj.property.player_id] = obj.property
+
+            return properties
+        
+        def get_nearest_enemy_id(enemy_position): # 获取最近的敌人的 id
+            if enemy_position is not None:
+                for obj in map[enemy_position[0]*19+enemy_position[1]].objs:
+                    if obj.type == ObjType.Player and obj.property.player_id != self_id:
+                        enemy_id = obj.property.player_id
+                        return enemy_id
+            return None       
+                
+        # def get_enemy_property(enemy_position):  # 获取敌人的属性
+        #     x = enemy_position[0]
+        #     y = enemy_position[1]
+        #     player_id = actionResp.player_id
+        #     for obj in map[x*15+y].objs:
+        #         if obj.type == ObjType.Player and obj.property.player_id != player_id:
+        #             return obj.property
+        #     return None
+        
         def get_present_round():
             present_round = actionResp.round
             return present_round
-        
-        present_round = get_present_round() 
         
         def get_bomb_info(bomb_info):  # 获取所有炸弹的坐标
             old_bomb_id_list = []
@@ -303,8 +320,8 @@ class Anlz(object):
                 for bomb in bomb_info:
                     old_bomb_id_list.append(bomb['id'])
             for i in range(len(map)):
-                coord_x = i // 15
-                coord_y = i % 15
+                coord_x = i // 19
+                coord_y = i % 19
                 coord = (coord_x, coord_y)
                 point_type = [obj.type for obj in map[i].objs]
                 if ObjType.Bomb in point_type:
@@ -335,10 +352,11 @@ class Anlz(object):
                     y = bomb['position'][1]
                     self_in_bomb = False
                     explode_round = bomb['place_round'] + 5
-                    if bomb['player'] == self_property.player_id:
-                        bomb_range = self_property.bomb_range
-                    elif bomb['player'] == enemy_property.player_id:
-                        bomb_range = enemy_property.bomb_range
+                    # if bomb['player'] == self_property.player_id:
+                    #     bomb_range = self_property.bomb_range
+                    # elif bomb['player'] == enemy_property.player_id:
+                    #     bomb_range = enemy_property.bomb_range
+                    bomb_range = all_player_properties[bomb['player']].bomb_range
                     for direction in [(1, 0), (-1, 0), (0, 1), (0, -1), (0, 0)]:
                         if direction == (0, 0):
                             self_in_bomb = True
@@ -346,15 +364,15 @@ class Anlz(object):
                             new_position_x = x + i * direction[0]
                             new_position_y = y + i * direction[1]
                             new_position = (new_position_x, new_position_y)
-                            if 0 <= new_position_x < 15 and 0 <= new_position_y < 15:
+                            if 0 <= new_position_x < 19 and 0 <= new_position_y < 19:
                                 if self_in_bomb == True and new_position not in bomb_ranges:
                                     bomb_ranges.add((new_position_x, new_position_y))
                                     bomb_range_with_explode_round[new_position] = explode_round
                                 if self_in_bomb == False and new_position not in bomb_ranges:
                                     _continue = False
                                     _continue = \
-                                        not any(obj.type == ObjType.Bomb for obj in map[new_position_x * 15 + new_position_y].objs) and \
-                                        not any(obj.type == ObjType.Block for obj in map[new_position_x * 15 + new_position_y].objs)
+                                        not any(obj.type == ObjType.Bomb for obj in map[new_position_x * 19 + new_position_y].objs) and \
+                                        not any(obj.type == ObjType.Block for obj in map[new_position_x * 19 + new_position_y].objs)
                                     if _continue == True:
                                         bomb_ranges.add(new_position)
                                         bomb_range_with_explode_round[new_position] = explode_round
@@ -376,8 +394,8 @@ class Anlz(object):
             blocks_property = {}
             for direction, (dx, dy) in directions.items():
                 new_x, new_y = x + dx, y + dy
-                if 0 <= new_x < 15 and 0 <= new_y < 15:
-                    block_properties = [obj.property for obj in map[new_x * 15 + new_y].objs]
+                if 0 <= new_x < 19 and 0 <= new_y < 19:
+                    block_properties = [obj.property for obj in map[new_x * 19 + new_y].objs]
                     blocks_property[direction] = block_properties
             return blocks_property
         
@@ -520,7 +538,7 @@ class Anlz(object):
                 surrounding_coords = []
                 for dx, dy in directions:
                     x, y = enemy_coord[0] + dx, enemy_coord[1] + dy
-                    if 0 <= x <= 14 and 0 <= y <= 14 and ifstad(x, y):
+                    if 0 <= x <= 18 and 0 <= y <= 18 and ifstad(x, y):
                         surrounding_coords.append((x, y))
                 return surrounding_coords
 
@@ -591,8 +609,8 @@ class Anlz(object):
             item_list = []
             for coords in coords_list:
                 for coord in (coords[1:] if forseen else coords):
-                    if map[coord[0]*15+coord[1]].objs:
-                        for obj in map[coord[0]*15+coord[1]].objs:
+                    if map[coord[0]*19+coord[1]].objs:
+                        for obj in map[coord[0]*19+coord[1]].objs:
                             if obj.type == 4:
                                 item_list.append(coord)
             return item_list
@@ -604,13 +622,6 @@ class Anlz(object):
             min_index = distances.index(min(distances))
             return items_list[min_index]
 
-        # def get_forseen_coords_list(target_coord, bomb_range_with_round):
-        #     forseen_coords_list = []
-        #     if target_coord is not None:
-        #         forseen_start_coord = target_coord
-        #         forseen_coords_list = get_coords_list(forseen_start_coord, bomb_range_with_round)
-        #     return forseen_coords_list
-        
         def get_forseen_bomb_info(place_coord, bomb_info):
             forseen_bomb_info = bomb_info.copy()
             if place_coord is not None:
@@ -629,13 +640,13 @@ class Anlz(object):
             forseen_item_list = get_item_position_list(forseen_coords_list, map, forseen=True)
             forseen_enemy_position = (None if (start_coord == enemy_position) else enemy_position)
             no_godness_point = None
-            forseen_cut_point = get_cut_point(cut_idx)
+            forseen_cut_point = (get_cut_point(cut_idx) if self.state['fight'] == True else None)
             forseen_push_bomb_point = None
             forseen_target_point = select_and_combine_target_point(forseen_best_safe_coord, forseen_bomb_block_point, \
                         forseen_item_list, forseen_enemy_position, no_godness_point, forseen_cut_point, forseen_push_bomb_point)
             return forseen_target_point
         
-        def forseen_bomb_place_escapable(place_coord, bomb_info):       # 有问题?
+        def forseen_bomb_place_escapable(place_coord, bomb_info):      
             if place_coord is not None:
                 requrid_round = cal_required_round(coords_list, place_coord, self_property)
                 place_round = present_round + requrid_round
@@ -644,13 +655,10 @@ class Anlz(object):
                 forseen_start_coord = place_coord
                 forseen_coords_list = []
                 forseen_coords_list, _ = get_coords_list(forseen_start_coord, bomb_range_with_round)
-                # print("预测放炸弹后的路径：", forseen_coords_list)
                 forseen_safe_coords = []
                 forseen_safe_coords = find_safe_coords(place_round, forseen_coords_list, bomb_range_with_round, self_property)
                 if len(forseen_safe_coords):
-                    # print("预测放炸弹后的安全坐标：", forseen_safe_coords)
                     return True
-                # print("预测放炸弹后的安全坐标：", forseen_safe_coords)
                 return False
         
         def select_and_combine_target_point(best_safe_coord, bomb_block_point, item_coord, enemy_point, \
@@ -698,14 +706,6 @@ class Anlz(object):
             return require_round
         
         def change_state(coords_list, self_property, enemy_property, best_safe_coord, bomb_range): # 改变状态
-            if self_property.invincible_time > 0:
-                self.state['self_godness'] = True
-            else:
-                self.state['self_godness'] = False
-            if enemy_property.invincible_time > 0:
-                self.state['enemy_godness'] = True
-            else:
-                self.state['enemy_godness'] = False
             if self_position in bomb_range and best_safe_coord == None:
                 self.state['dying'] = True
             else:
@@ -714,6 +714,19 @@ class Anlz(object):
                 if enemy_position in coords:
                     self.state['fight'] = True
                     break
+            if self.state['fight'] == True:
+                if self_property.invincible_time > 0:
+                    self.state['self_godness'] = True
+                else:
+                    self.state['self_godness'] = False
+                if enemy_property.invincible_time > 0:
+                    self.state['enemy_godness'] = True
+                else:
+                    self.state['enemy_godness'] = False
+                if self_property.shield_time > 5:
+                    self.state['self_shield'] = True
+                else:
+                    self.state['self_shield'] = False
         
         def transform_target_point_to_coords(target_point, coords_list):
             target_coords = {}
@@ -734,7 +747,7 @@ class Anlz(object):
             if state['dying'] == True:
                 coords_list_with_bomb = get_coords_list(self_position, bomb_range_with_round)[1]
                 target_coords = transform_target_point_to_coords(target_point, coords_list_with_bomb)
-            elif state['self_godness'] == True and self_property.invincible_time >= enemy_property.invincible_time:
+            elif state['self_godness'] == True and self_property.invincible_time >= nearest_enemy_property.invincible_time:
                 start_coord = coords_list[0][0]
                 coords_list_no_bomb_range = get_coords_list(start_coord, bomb_range_with_round, ignore_bomb_range=True)[0]
                 target_coords = transform_target_point_to_coords(target_point, coords_list_no_bomb_range)
@@ -747,9 +760,9 @@ class Anlz(object):
                 priority_list = ['safe_point', 'item_point', 'bomb_block_point']
             
             if state['fight'] == True:
-                if state['self_godness'] == True and self_property.invincible_time >= enemy_property.invincible_time:
+                if state['self_godness'] == True and self_property.invincible_time >= nearest_enemy_property.invincible_time:
                     priority_list = ['enemy_point', 'cut_point', 'safe_point', 'item_point', 'bomb_block_point']
-                elif state['self_godness'] == True and self_property.invincible_time < enemy_property.invincible_time:
+                elif state['self_godness'] == True and self_property.invincible_time < nearest_enemy_property.invincible_time:
                     priority_list = ['no_godness_point', 'safe_point', 'item_point', 'bomb_block_point']
                 elif state['self_godness'] == False and state['enemy_godness'] == True:
                     priority_list = ['no_godness_point', 'safe_point', 'item_point']
@@ -768,7 +781,7 @@ class Anlz(object):
                 action_target_coord = action_target_coords[-1]
                 
             if action_target_coord is not None:
-                # print("行动的目标点及其类型：", action_target_coord, target_type)
+                print("行动的目标点及其类型：", action_target_coord, target_type)
                 if target_type == 'push_bomb_point':
                     ditance_to_target = calculate_distance(coords_list_with_bomb, action_target_coord)
                 else:
@@ -840,27 +853,55 @@ class Anlz(object):
                         action_list = action_list[:max_action_times]
             
                 
-        get_bomb_info(self.bomb_info)
+        
+        present_round = get_present_round() 
+        all_player_properties = get_all_players_properties()
+        
+        get_bomb_info(self.bomb_info)                           # 获取一些基本信息
         bomb_range, bomb_range_with_round = get_bomb_range(self.bomb_info)
         
-        start_coord = self_position
-        coords_list, _ = get_coords_list(start_coord, bomb_range_with_round)
+        self_position = get_self_position()     
+        start_coord = self_position                
+        coords_list, coords_list_ignore_bomb = get_coords_list(start_coord, bomb_range_with_round)        
+        
+        enemy_position = get_nearest_enemy_position()
+        
+        self_id = actionResp.player_id
+        self_property = all_player_properties[self_id] 
+        
+        nearest_enemy_id = self.nearest_enemy_id
+        new_nearest_enemy_id = get_nearest_enemy_id(enemy_position)
+        if new_nearest_enemy_id is not None:
+            nearest_enemy_id = new_nearest_enemy_id
+        if nearest_enemy_id is not None:
+            nearest_enemy_property = all_player_properties[nearest_enemy_id]
+            self.nearest_enemy_id = nearest_enemy_id
+        else:
+            nearest_enemy_property = None
         
         safe_coords = find_safe_coords(present_round, coords_list, bomb_range_with_round, self_property)
         best_safe_coord = find_best_safe_coord(safe_coords, bomb_range_with_round)
         
-        change_state(coords_list, self_property, enemy_property, best_safe_coord, bomb_range)
+        change_state(coords_list, self_property, nearest_enemy_property, best_safe_coord, bomb_range)
 
         bomb_block_point = get_bomb_block_point(coords_list, map, self.bomb_info, self.state, imagin_place=False)
         
         item_list = get_item_position_list(coords_list, map, forseen=False)
         item_coord = get_nearest_item_position(coords_list, item_list)
 
-        no_godness_point = get_no_godness_coord(self_position, enemy_position, bomb_range_with_round)
+        if self.state['fight'] == True:
+            attack_range = get_attack_range()
+            no_godness_point = get_no_godness_coord(self_position, enemy_position, bomb_range_with_round)
+            cut_point = get_cut_point(cut_idx=0)
+        else:
+            no_godness_point = None
+            cut_point = None
+            attack_range = None
         
-        cut_point = get_cut_point(cut_idx=0)
-        
-        push_bomb_point = get_push_bomb_point(self.bomb_info, bomb_range_with_round)
+        if self.state['dying'] == True:
+            push_bomb_point = get_push_bomb_point(self.bomb_info, bomb_range_with_round)
+        else:
+            push_bomb_point = None
         
         # fatal_point = None
         # if self.state['fight'] == True and cal_required_round(coords_list, enemy_position, self_property) <= 1:
@@ -872,23 +913,23 @@ class Anlz(object):
         action_list = []
         bomb_info = self.bomb_info
         create_action_list(self.state, action_list, coords_list, target_point, present_round, bomb_info, bomb_range, bomb_range_with_round)
-        attack_range = get_attack_range()
-        if self_position in attack_range and self.state['fight'] == True and forseen_bomb_place_escapable(self_position, self.bomb_info) and\
-            self.state['self_godness'] == False and self.state['enemy_godness'] == False:
+        
+        if self.state['fight'] == True and self.state['self_godness'] == False and self.state['enemy_godness'] == False and \
+            self_position in attack_range and forseen_bomb_place_escapable(self_position, self.bomb_info):
             
             action_list.insert(0, 'place')
         
         self.actions = action_list
         
         # print("致命点：", fatal_point)
-        # print("当前状态：", self.state)
-        # print("切路坐标：", cut_point)
-        # print("目的安全坐标：", best_safe_coord)
-        # print("安全坐标：", safe_coords)
-        # print("开路坐标：", bomb_block_point)
-        # print("行动列表：", action_list)
-        # print("目标点：", target_point)
-        # print("即将爆炸坐标及爆炸回合：\n", bomb_range_with_round)
+        print("当前状态：", self.state)
+        print("切路坐标：", cut_point)
+        print("目的安全坐标：", best_safe_coord)
+        print("安全坐标：", safe_coords)
+        print("开路坐标：", bomb_block_point)
+        print("行动列表：", action_list)
+        print("目标点：", target_point)
+        print("即将爆炸坐标及爆炸回合：\n", bomb_range_with_round)
         1
         # print("路径（方向表示）：")
         # for path in paths:

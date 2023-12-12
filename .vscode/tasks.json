@@ -6,7 +6,7 @@
         {
             "label": "run seedcup test",
             "type": "shell",
-            "command": "echo 'seedcup test running...'",
+            "command": "echo 'seedcup test end'",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
@@ -21,12 +21,12 @@
             "dependsOrder": "parallel",
             "problemMatcher": [
                 "$msCompile"
-            ]
+            ],
         },
         {
             "label": "run server",
             "type": "shell",
-            "command": "bash ${workspaceFolder}/bash/run_server.bash",
+            "command": "cd ~/Desktop/seedcup2023-client/bin && ./server",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
@@ -35,7 +35,7 @@
         {
             "label": "run bot1",
             "type": "shell",
-            "command": "bash ${workspaceFolder}/bash/run_bot1.bash",
+            "command": "cd ~/Desktop/seedcup2023-client/bin && ./clever-bot",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
@@ -44,7 +44,7 @@
         {
             "label": "run bot2",
             "type": "shell",
-            "command": "bash ${workspaceFolder}/bash/run_bot2.bash",
+            "command": "cd ~/Desktop/seedcup2023-client/bin && ./clever-bot",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
@@ -53,7 +53,7 @@
         {
             "label": "run bot3",
             "type": "shell",
-            "command": "bash ${workspaceFolder}/bash/run_bot3.bash",
+            "command": "cd ~/Desktop/seedcup2023-client/bin && ./clever-bot",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
@@ -62,7 +62,7 @@
         {
             "label": "run selfbot",
             "type": "shell",
-            "command": "bash ${workspaceFolder}/bash/run_selfbot.bash",
+            "command": "cd ~/Desktop/seedcup2023-client/client/python && python3 main.py",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
