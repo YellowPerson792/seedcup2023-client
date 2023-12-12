@@ -113,8 +113,8 @@ def recvAndRefresh(ui: UI, client: Client, anlz: Anlz):
 
     while resp.type != PacketType.GameOver:
         subprocess.run(["clear"])        
-        ui.refresh(resp.data)
-        ui.display()
+        # ui.refresh(resp.data)
+        # ui.display()
         anlz.codebox(resp.data) 
         # resp = client.recv()
            

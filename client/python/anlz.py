@@ -768,7 +768,7 @@ class Anlz(object):
                 action_target_coord = action_target_coords[-1]
                 
             if action_target_coord is not None:
-                print("行动的目标点及其类型：", action_target_coord, target_type)
+                # print("行动的目标点及其类型：", action_target_coord, target_type)
                 if target_type == 'push_bomb_point':
                     ditance_to_target = calculate_distance(coords_list_with_bomb, action_target_coord)
                 else:
@@ -881,14 +881,14 @@ class Anlz(object):
         self.actions = action_list
         
         # print("致命点：", fatal_point)
-        print("当前状态：", self.state)
-        print("切路坐标：", cut_point)
-        print("目的安全坐标：", best_safe_coord)
-        print("安全坐标：", safe_coords)
-        print("开路坐标：", bomb_block_point)
-        print("行动列表：", action_list)
-        print("目标点：", target_point)
-        print("即将爆炸坐标及爆炸回合：\n", bomb_range_with_round)
+        # print("当前状态：", self.state)
+        # print("切路坐标：", cut_point)
+        # print("目的安全坐标：", best_safe_coord)
+        # print("安全坐标：", safe_coords)
+        # print("开路坐标：", bomb_block_point)
+        # print("行动列表：", action_list)
+        # print("目标点：", target_point)
+        # print("即将爆炸坐标及爆炸回合：\n", bomb_range_with_round)
         1
         # print("路径（方向表示）：")
         # for path in paths:
