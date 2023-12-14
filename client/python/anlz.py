@@ -194,7 +194,7 @@ class Anlz(object):
                     new_path = path.copy()
                     new_path.append(direction)  # 添加方向到 new_path
                     new_coord = direction_to_coord(*start_coord, direction)
-                    if new_coord not in visited_coords:
+                    if new_coord not in visited_coords and len(new_path) <= 20:  # Check if the length of new_path is not more than 10
                         visited_coords.add(new_coord)
                         queue.append((new_coord, new_path, direction))        
             return paths
@@ -544,7 +544,7 @@ class Anlz(object):
             bomb_block_coord_list = []
             start_coord = coords_list[0][0]
             for coords in coords_list:
-                for coord in (coords[1:] if imagin_place else coords):
+                for coord in (coords[1:20] if imagin_place else coords[:20]):
                     if check_removable(coord, map) and forseen_bomb_place_escapable(coord, bomb_info) and self_position not in bomb_positions:
                         bomb_block_coord_list.append(coord)
                         break
@@ -563,7 +563,7 @@ class Anlz(object):
             bomb_range = bomb_range_with_round.keys()
             if start_coord in bomb_range:
                 for coords in coords_list:
-                    for coord in coords:
+                    for coord in coords[:20]:
                         reach_round = round + cal_required_round(start_coord, coord, property)
                         if coord in bomb_range:
                             bomb_round = bomb_range_with_round[coord]
@@ -618,7 +618,7 @@ class Anlz(object):
                 return safe_coords[max_coords_sum_index]
             return None
         
-        def get_cut_points(bomb_info, bomb_range):        # 获取切路坐标
+        def get_cut_points(bomb_info):        # 获取切路坐标
                     
             def get_surrounding_coords(enemy_coord):
                 directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
@@ -665,7 +665,7 @@ class Anlz(object):
         #     random_point = random.choice(valid_coords) if valid_coords else None
         #     return random_point
                 
-        def get_fatal_points(bomb_info, bomb_range_with_round): # 获取必杀坐标
+        def get_fatal_point(bomb_info, bomb_range_with_round): # 获取必杀坐标
             
             # def modify_enemy_coords_list(original_coords_list, _coord):
             #     coords_list = original_coords_list.copy()
@@ -677,10 +677,10 @@ class Anlz(object):
             #     # print("敌人路径：", coords_list)
             #     return coords_list
                 
-            fatal_points = []
-            coords_list_from_enemy = get_coords_list(enemy_position, bomb_range_with_round)
+            fatal_point = None
+            coords_list_from_enemy = get_coords_list(enemy_position, bomb_range_with_round, ignore_bomb_range=True)
             for coords in coords_list_from_enemy:
-                for coord in coords[1:]:
+                for coord in coords[1:4]:  # Change this line
                     # forseen_coords_list = modify_enemy_coords_list(coords_list_from_enemy, coord)
                     forseen_bomb_info = get_forseen_bomb_info(coord, bomb_info)
                     forseen_bomb_range_with_round = get_bomb_range(forseen_bomb_info)
@@ -689,17 +689,20 @@ class Anlz(object):
                             nearest_enemy_property)
                     # print("坐标和敌人安全坐标：", coord, enemy_safe_coords)
                     if not enemy_safe_coords:
-                        fatal_points.append(coord)
+                        fatal_point = coord
                         break
             # print("必杀坐标：", fatal_points)
-            return fatal_points
+            return fatal_point
         
         
-        def get_nearest_fatal_point(start_coord, fatal_points):
-            if not fatal_points:
-                return None
-            nearest_fatal_point = min(fatal_points, key=lambda point: cal_distance(start_coord, point))
-            return nearest_fatal_point
+        # def get_nearest_fatal_point(start_coord, fatal_points):
+        #     if not fatal_points:
+        #         return None
+        #     elif len(fatal_points) == 1:
+        #         return fatal_points[0]
+        #     else:
+        #         nearest_fatal_point = min(fatal_points, key=lambda point: cal_distance(start_coord, point))
+        #         return nearest_fatal_point
                      
         def get_item_position_list(start_coord, bomb_range, map, forseen=False):
             item_position_list = []
@@ -736,7 +739,7 @@ class Anlz(object):
             
             start_coord = forseen_coords_list[0][0]
             forseen_bomb_range = forseen_bomb_range_with_round.keys()
-            forseen_cut_points = get_cut_points(forseen_bomb_info, forseen_bomb_range)
+            forseen_cut_points = get_cut_points(forseen_bomb_info)
             if len(forseen_cut_points) and cut_idx < len(forseen_cut_points):
                 forseen_cut_point = (forseen_cut_points[cut_idx] if self.state['fight'] == True else None)
             else:
@@ -894,8 +897,8 @@ class Anlz(object):
                     for i in range(left_action_times):
                         direction = get_direction(action_target_coords[i], action_target_coords[i+1])
                         action_list_p.append(direction)
-                    if target_point == 'no_godness_point':
-                        action_list_p.insert(0, 'place')        
+                    # if target_point == 'no_godness_point':
+                    #     action_list_p.insert(0, 'place')        
                     action_list.extend(action_list_p)
                 
                 elif distance_to_target < left_action_times: # 情况2：可以一次性到达目标点
@@ -915,11 +918,25 @@ class Anlz(object):
                         for i in range(action_times_p):
                             direction = get_direction(action_target_coords[i], action_target_coords[i+1])
                             action_list_p.append(direction)
-                        forseen_bomb_info = bomb_info
+                            action_list = action_list_p
+                        return
+                        # forseen_bomb_info = bomb_info
+                        # forseen_coords_list = get_coords_list(action_target_coord, forseen_bomb_range_with_round)
+                        # forseen_target_point = {}
+                        # action_list_p.insert(0, 'place')
+                    elif target_type == 'fatal_point':        # cut_point 有待改进
+                        action_times_p += 1
+                        for i in range(action_times_p):
+                            if i < action_times_p - 1:
+                                direction = get_direction(action_target_coords[i], action_target_coords[i+1])
+                                action_list_p.append(direction)
+                            elif i == action_times_p - 1:
+                                action_list_p.append('place')       
+                        forseen_bomb_info = get_forseen_bomb_info(action_target_coord, bomb_info)
+                        forseen_bomb_range_with_round = get_bomb_range(forseen_bomb_info)
                         forseen_coords_list = get_coords_list(action_target_coord, forseen_bomb_range_with_round)
-                        forseen_target_point = get_forseen_target_point(forseen_coords_list, bomb_range_with_round, \
+                        forseen_target_point = get_forseen_target_point(forseen_coords_list, forseen_bomb_range_with_round, \
                             forseen_bomb_info, forseen_round, recursion_times)
-                        action_list_p.insert(0, 'place')
                     elif target_type == 'cut_point':        # cut_point 有待改进
                         action_times_p += 1
                         for i in range(action_times_p):
@@ -999,7 +1016,7 @@ class Anlz(object):
                 no_godness_point = get_no_godness_coord(enemy_position, bomb_range)
             else:
                 no_godness_point = None
-            cut_points = get_cut_points(self.bomb_info, bomb_range)
+            cut_points = get_cut_points(self.bomb_info)
             if len(cut_points):
                 cut_point = cut_points[0]
             else:
@@ -1023,8 +1040,8 @@ class Anlz(object):
         
         fatal_point = None
         if self.state['fight'] == True and cal_required_round(start_coord, enemy_position, self_property) <= 1:
-            fatal_points = get_fatal_points(self.bomb_info, bomb_range_with_round)
-            fatal_point = get_nearest_fatal_point(start_coord, fatal_points)
+            fatal_point = get_fatal_point(self.bomb_info, bomb_range_with_round)
+            # fatal_point = get_nearest_fatal_point(start_coord, fatal_points)
         
         target_point = select_and_combine_target_point(best_safe_coord, bomb_block_point, item_coord, enemy_position, \
             no_godness_point, cut_point, push_bomb_point, fatal_point)
