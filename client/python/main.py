@@ -12,6 +12,8 @@ from time import sleep
 from logger import logger
 
 import sys
+import cProfile
+import pstats
 
 from anlz import Anlz
 
@@ -115,8 +117,8 @@ def recvAndRefresh(ui: UI, client: Client, anlz: Anlz):
         subprocess.run(["clear"])        
         ui.refresh(resp.data)
         ui.display()
-        anlz.codebox(resp.data) 
-           
+        anlz.codebox(resp.data)
+        
         actions = anlz.action_req_send() 
         _actions = []
         for action in actions:
@@ -151,6 +153,12 @@ key2ActionReq = {
     ' ': ActionType.PLACED,
 }
 
+def profiled_recvAndRefresh(ui, client, anlz):
+    recvAndRefresh(ui, client, anlz)
+    # cProfile.runctx('recvAndRefresh(ui, client, anlz)', globals(), locals(), 'output.pstat')
+    # p = pstats.Stats('output.pstat')
+    # p.sort_stats('cumtime').print_stats()
+
 def termPlayAPI():
     ui = UI()
     anlz = Anlz()
@@ -162,7 +170,7 @@ def termPlayAPI():
         client.send(initPacket)
         
         # IO thread to display UI
-        t = Thread(target=recvAndRefresh, args=(ui, client, anlz))
+        t = Thread(target=profiled_recvAndRefresh, args=(ui, client, anlz))
         t.start()
         
         print(gContext["prompt"])
@@ -202,7 +210,6 @@ def termPlayAPI():
             # actionPacket = PacketReq(PacketType.ActionReq, action)
             # client.send(actionPacket)
             
-            
 
             if gContext["gameOverFlag"]:
                 break
@@ -215,4 +222,62 @@ def termPlayAPI():
 
 if __name__ == "__main__":
     
-    termPlayAPI()
+    # termPlayAPI()
+    
+    ui = UI()
+    anlz = Anlz()
+    
+    with Client() as client:
+        client.connect()    
+        
+        initPacket = PacketReq(PacketType.InitReq, cliGetInitReq())
+        client.send(initPacket)
+        
+        # IO thread to display UI
+        t = Thread(target=profiled_recvAndRefresh, args=(ui, client, anlz))
+        t.start()
+        
+        print(gContext["prompt"])
+        for c in cycle(gContext["steps"]):
+            if gContext["gameBeginFlag"]:
+                break
+            print(
+                f"\r\033[0;32m{c}\033[0m \33[1mWaiting for the other player to connect...\033[0m",
+                flush=True,
+                end="",
+            )
+            sleep(0.1)
+
+        
+        while not gContext["gameOverFlag"]:
+            # old_settings = termios.tcgetattr(sys.stdin)
+            # tty.setcbreak(sys.stdin.fileno())
+            # key = sys.stdin.read(1)
+            # termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+            
+            # if key in key2ActionReq.keys():
+            #     action = ActionReq(gContext["playerID"], key2ActionReq[key])
+            # else:
+            #     action = ActionReq(gContext["playerID"], ActionType.SILENT)         
+            
+            # print(anlz.action_req_send())           
+            # action = ActionReq(gContext["playerID"], anlz.action_req_send())
+            
+            # subprocess.run(["clear"]) 
+            # resp = client.recv()
+            
+            # anlz.codetest(resp.data)
+            
+            # print(anlz.action_req_send())           
+            # action = ActionReq(gContext["playerID"], anlz.action_req_send())
+   
+            # actionPacket = PacketReq(PacketType.ActionReq, action)
+            # client.send(actionPacket)
+            
+            if gContext["gameOverFlag"]:
+                break
+            
+            # actionPacket = PacketReq(PacketType.ActionReq, action)
+            # client.send(actionPacket)
+            # sleep(0.5)
+    

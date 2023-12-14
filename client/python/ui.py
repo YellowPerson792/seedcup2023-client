@@ -143,7 +143,7 @@ class UI(object):
         print('   ', end='')
         for i in range(10):
             print(i, end=' ')    
-        for i in range(10):
+        for i in range(9):
             print(i, end=' ')
         print('')  
         for idx, block_row in enumerate(self._block):
